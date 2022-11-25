@@ -9,141 +9,184 @@
 #include <queue>
 #include <string>
 #include <sstream>
+#include <regex>
 
 using namespace std;
 
 DomTree::DomTree() {
-    root = new Node();
-    is_legal = false;
+    _root = new Node();
 }
 
-DomTree::DomTree(const std::string &content) {
-    root = new Node();
-    is_legal = false;
+void DomTree::build_tree(const std::string &content) {
     set<string> unclosed_tag = {"br", "hr", "base", "meta", "img", "input", "link"};
     stack<Node *> nodes;
-    string tag, element, type;
-    bool is_tag, is_comment;
+    string tag, text, script, tag_name, class_name, id_name;
+    bool is_tag = false, is_comment = false, is_script = false;
     for (char i: content) {
         if (is_comment) {
             tag.push_back(i);
-            if (tag.substr(tag.length() - 3, tag.length()) == "-->") {
+            if (tag.size() >= 3 and tag.substr(tag.size() - 3, tag.size()) == "-->") {
                 is_comment = false;
                 tag.clear();
                 is_tag = false;
             }
+        } else if (is_script) {
+            script.push_back(i);
+            if (script.size() >= 9 and script.substr(script.size() - 9, script.size()) == "</script>") {
+                is_script = false;
+                nodes.top()->_close_tag = "/script";
+                script.erase(script.size() - 9, 9);
+                if (!script.empty()) {
+                    size_t n = script.find_last_not_of(" \n\r\t");
+                    if (n != string::npos) {
+                        script.erase(n + 1, script.size() - n);
+                    }
+                    n = script.find_first_not_of(" \n\r\t");
+                    if (n != 0) {
+                        script.erase(0, n);
+                    }
+                }
+                if (!script.empty()) {
+                    auto node = new Node("iScript", "", "", "", "", script);
+                    node->_parent = nodes.top();
+                    if (nodes.top()->_left_child == nullptr) {
+                        nodes.top()->_left_child = node;
+                    } else {
+                        Node *p = nodes.top()->_left_child;
+                        while (p->_right_sibling != nullptr) {
+                            p = p->_right_sibling;
+                        }
+                        p->_right_sibling= node;
+                    }
+                    script.clear();
+                }
+                nodes.pop();
+            }
         } else if (i == '<') {
             is_tag = true;
-            if (!element.empty()) {
-                size_t n = element.find_last_not_of(" \n\r\t");
+            if (!text.empty()) {
+                size_t n = text.find_last_not_of(" \n\r\t");
                 if (n != string::npos) {
-                    element.erase(n + 1, element.size() - n);
+                    text.erase(n + 1, text.size() - n);
                 }
-                n = element.find_first_not_of(" \n\r\t");
+                n = text.find_first_not_of(" \n\r\t");
                 if (n != 0) {
-                    element.erase(0, n);
+                    text.erase(0, n);
                 }
             }
-            if (!element.empty()) {
-                auto *node = new Node("IText", "", "", element);
+            if (!text.empty()) {
+                auto *node = new Node("iText", "", "", "", "", text);
                 if (!nodes.empty()) {
-                    node->parent = nodes.top();
+                    node->_parent = nodes.top();
                 } else {
-                    node->parent = root;
+                    node->_parent = _root;
                 }
-                if (node->parent->left_child == nullptr) {
-                    node->parent->left_child = node;
+                if (node->_parent->_left_child == nullptr) {
+                    node->_parent->_left_child = node;
                 } else {
-                    Node *p = node->parent->left_child;
-                    while (p->right_sibling != nullptr) {
-                        p = p->right_sibling;
+                    Node *p = node->_parent->_left_child;
+                    while (p->_right_sibling != nullptr) {
+                        p = p->_right_sibling;
                     }
-                    p->right_sibling = node;
+                    p->_right_sibling = node;
                 }
-                element.clear();
+                text.clear();
             }
-        } else if (i == '>') {
+        } else if (is_tag and i == '>') {
             is_tag = false;
-            istringstream ss(tag);
-            ss >> type;
-            if (type[0] == '!') {   // ignore commentary
+            if (tag[0] == '!') {
+                // ignore !DOCTYPE
                 tag.clear();
                 continue;
             }
-            if (unclosed_tag.count(type) != 0) {    // if the tag doesn't need closing
-                auto *node = new Node(type, tag);
+
+            istringstream ss(tag);
+            ss >> tag_name;
+
+            if (tag_name == "script") {
+                is_script = true;
+            }
+
+            regex r_class("class=\"([^\"]+)\"");
+            regex r_id("id=\"([^\"]+)\"");
+            smatch m;
+            if (regex_search(tag, m, r_class)) {
+                class_name = m[1];
+            }
+            if (regex_search(tag, m, r_id)) {
+                id_name = m[1];
+            }
+
+            if (unclosed_tag.count(tag_name) != 0) {
+                // if the tag doesn't need to be closed
+                auto *node = new Node(tag_name, class_name, id_name, tag);
                 if (!nodes.empty()) {
-                    node->parent = nodes.top();
+                    node->_parent = nodes.top();
                 } else {
-                    node->parent = root;
+                    node->_parent = _root;
                 }
-                if (node->parent->left_child == nullptr) {
-                    node->parent->left_child = node;
+                if (node->_parent->_left_child == nullptr) {
+                    node->_parent->_left_child = node;
                 } else {
-                    Node *p = node->parent->left_child;
-                    while (p->right_sibling != nullptr) {
-                        p = p->right_sibling;
+                    Node *p = node->_parent->_left_child;
+                    while (p->_right_sibling != nullptr) {
+                        p = p->_right_sibling;
                     }
-                    p->right_sibling = node;
+                    p->_right_sibling = node;
                 }
-            } else if (type[0] != '/') {    // if the tag need closing and is an opening tag
-                auto *node = new Node(type, tag);
+            } else if (tag_name[0] != '/') {
+                // if the tag need closing and is an opening tag
+                auto *node = new Node(tag_name, class_name, id_name, tag);
                 if (!nodes.empty()) {
-                    node->parent = nodes.top();
+                    node->_parent = nodes.top();
                 } else {
-                    node->parent = root;
+                    node->_parent = _root;
                 }
-                if (node->parent->left_child == nullptr) {
-                    node->parent->left_child = node;
+                if (node->_parent->_left_child == nullptr) {
+                    node->_parent->_left_child = node;
                 } else {
-                    Node *p = node->parent->left_child;
-                    while (p->right_sibling != nullptr) {
-                        p = p->right_sibling;
+                    Node *p = node->_parent->_left_child;
+                    while (p->_right_sibling != nullptr) {
+                        p = p->_right_sibling;
                     }
-                    p->right_sibling = node;
+                    p->_right_sibling = node;
                 }
                 nodes.push(node);
-                element.clear();
-            } else {    // if the tag is a closing tag
-                string t_type = type.substr(1);
-                if (t_type != nodes.top()->type) {  // illegal
-                    is_legal = false;
-                    break;
-                } else {
-                    nodes.top()->closing_tag = tag;
-                    nodes.pop();
+                text.clear();
+            } else {
+                // if the tag is a closing tag
+                if (tag_name.substr(1, tag_name.size()) != nodes.top()->_tag_name) {
+                    throw runtime_error("Tag not closed");
                 }
+                nodes.top()->_close_tag = tag;
+                nodes.pop();
             }
+
             tag.clear();
+            class_name.clear();
+            id_name.clear();
         } else if (is_tag) {
             tag.push_back(i);
             if (tag == "!--") {
                 is_comment = true;
             }
         } else {
-            element.push_back(i);
+            text.push_back(i);
         }
-    }
-    if (nodes.empty()) {
-        is_legal = true;
     }
 }
 
 DomTree::~DomTree() {
     queue<Node *> nodes;
-    nodes.push(root);
+    nodes.push(_root);
     while (!nodes.empty()) {
-        if (nodes.front()->left_child != nullptr) {
-            nodes.push(nodes.front()->left_child);
+        if (nodes.front()->_left_child != nullptr) {
+            nodes.push(nodes.front()->_left_child);
         }
-        if (nodes.front()->right_sibling != nullptr) {
-            nodes.push(nodes.front()->right_sibling);
+        if (nodes.front()->_right_sibling != nullptr) {
+            nodes.push(nodes.front()->_right_sibling);
         }
         delete nodes.front();
         nodes.pop();
     }
-}
-
-bool DomTree::check() const {
-    return is_legal;
 }

@@ -1,0 +1,10 @@
+/Users/wch/CLionProjects/Assignment3/lab3_news.html
+css.selector("*")
+css.selector("p.intro#firstname")
+css.selector(".name1.name2")
+css.selector(".name1 .name2")
+css.selector("div, p")
+css.selector("div p")
+css.selector("div > p")
+css.selector("div + p")
+css.selector("div ~ p")

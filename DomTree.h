@@ -12,15 +12,12 @@ class DomTree {
 public:
     DomTree();
 
-    explicit DomTree(const std::string &content);
+    void build_tree(const std::string &content);
 
     ~DomTree();
 
-    bool check() const;
-
 private:
-    Node *root;
-    bool is_legal;
+    Node *_root;
 };
 
 

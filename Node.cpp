@@ -5,33 +5,36 @@
 #include "Node.h"
 
 Node::Node() {
-    type = "root";
-    opening_tag = "";
-    closing_tag = "";
-    element = "";
-    parent = nullptr;
-    left_child = nullptr;
-    right_sibling = nullptr;
+    _tag_name = "_root";
+    _class_name = "";
+    _open_tag = "";
+    _close_tag = "";
+    _text = "";
+    _parent = nullptr;
+    _left_child = nullptr;
+    _right_sibling = nullptr;
 }
 
-Node::Node(std::string t, std::string o) {
-    type = std::move(t);
-    opening_tag = std::move(o);
-    closing_tag = "";
-    element = "";
-    parent = nullptr;
-    left_child = nullptr;
-    right_sibling = nullptr;
+Node::Node(std::string tag_name, std::string class_name, std::string id_name, std::string open_tag) {
+    _tag_name = std::move(tag_name);
+    _class_name = std::move(class_name);
+    _id_name = std::move(id_name);
+    _open_tag = std::move(open_tag);
+    _close_tag = "";
+    _text = "";
+    _parent = nullptr;
+    _left_child = nullptr;
+    _right_sibling = nullptr;
 }
 
-Node::Node(std::string t, std::string o, std::string c, std::string e) {
-    type = std::move(t);
-    opening_tag = std::move(o);
-    closing_tag = std::move(c);
-    element = std::move(e);
-    parent = nullptr;
-    left_child = nullptr;
-    right_sibling = nullptr;
+Node::Node(std::string tag_name, std::string class_name, std::string id_name, std::string open_tag, std::string close_tag, std::string text) {
+    _tag_name = std::move(tag_name);
+    _class_name = std::move(class_name);
+    _id_name = std::move(id_name);
+    _open_tag = std::move(open_tag);
+    _close_tag = std::move(close_tag);
+    _text = std::move(text);
+    _parent = nullptr;
+    _left_child = nullptr;
+    _right_sibling = nullptr;
 }
-
-Node::~Node() = default;

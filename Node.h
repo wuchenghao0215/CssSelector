@@ -14,20 +14,21 @@ public:
 
     Node();
 
-    Node(std::string t, std::string o);
+    Node(std::string tag_name, std::string class_name, std::string id_name, std::string open_tag);
 
-    Node(std::string t, std::string o, std::string c, std::string e);
-
-    ~Node();
+    Node(std::string tag_name, std::string class_name, std::string id_name, std::string open_tag, std::string close_tag,
+         std::string text);
 
 private:
-    std::string type;
-    std::string opening_tag;
-    std::string closing_tag;
-    std::string element;
-    Node *parent;
-    Node *left_child;
-    Node *right_sibling;
+    std::string _tag_name;
+    std::string _class_name;
+    std::string _id_name;
+    std::string _open_tag;
+    std::string _close_tag;
+    std::string _text;
+    Node *_parent;
+    Node *_left_child;
+    Node *_right_sibling;
 };
 
 
