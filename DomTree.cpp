@@ -56,7 +56,7 @@ void DomTree::build_tree(const std::string &content) {
                         while (p->_right_sibling != nullptr) {
                             p = p->_right_sibling;
                         }
-                        p->_right_sibling= node;
+                        p->_right_sibling = node;
                     }
                     script.clear();
                 }
@@ -107,19 +107,28 @@ void DomTree::build_tree(const std::string &content) {
                 is_script = true;
             }
 
-            regex r_class("class=\"([^\"]+)\"");
-            regex r_id("id=\"([^\"]+)\"");
+            regex r_attr(R"((\w+)=\"([^\"]*)\")");
             smatch m;
-            if (regex_search(tag, m, r_class)) {
-                class_name = m[1];
-            }
-            if (regex_search(tag, m, r_id)) {
-                id_name = m[1];
+            string attr_name, attr_value;
+            map<string, string> attributes;
+            string tag_copy = tag;
+            while (regex_search(tag_copy, m, r_attr)) {
+                attr_name = m[1];
+                attr_value = m[2];
+                if (attr_name == "class") {
+                    class_name = attr_value;
+                } else if (attr_name == "id") {
+                    id_name = attr_value;
+                } else {
+                    attributes[attr_name] = attr_value;
+                }
+                tag_copy = m.suffix();
             }
 
             if (unclosed_tag.count(tag_name) != 0) {
                 // if the tag doesn't need to be closed
                 auto *node = new Node(tag_name, class_name, id_name, tag);
+                node->_attributes = attributes;
                 if (!nodes.empty()) {
                     node->_parent = nodes.top();
                 } else {
@@ -137,6 +146,7 @@ void DomTree::build_tree(const std::string &content) {
             } else if (tag_name[0] != '/') {
                 // if the tag need closing and is an opening tag
                 auto *node = new Node(tag_name, class_name, id_name, tag);
+                node->_attributes = attributes;
                 if (!nodes.empty()) {
                     node->_parent = nodes.top();
                 } else {
@@ -189,4 +199,262 @@ DomTree::~DomTree() {
         delete nodes.front();
         nodes.pop();
     }
+}
+
+std::vector<Node *> DomTree::traversal() const {
+    vector<Node *> nodes;
+    queue<Node *> q;
+    q.push(_root);
+    while (!q.empty()) {
+        if (q.front()->_left_child != nullptr) {
+            q.push(q.front()->_left_child);
+        }
+        if (q.front()->_right_sibling != nullptr) {
+            q.push(q.front()->_right_sibling);
+        }
+        nodes.push_back(q.front());
+        q.pop();
+    }
+    return nodes;
+}
+
+std::vector<string> split(const string &class_name) {
+    vector<string> classes;
+    // format: "class1 class2 class3"
+    istringstream ss(class_name);
+    string class_name_;
+    while (ss >> class_name_) {
+        classes.push_back(class_name_);
+    }
+    return classes;
+}
+
+std::vector<Node *>
+DomTree::select_1(const std::string &tag_name, const std::string &class_name, const std::string &id_name) const {
+    vector<Node *> nodes;
+    queue<Node *> q;
+    q.push(_root);
+    while (!q.empty()) {
+        if (q.front()->_left_child != nullptr) {
+            q.push(q.front()->_left_child);
+        }
+        if (q.front()->_right_sibling != nullptr) {
+            q.push(q.front()->_right_sibling);
+        }
+        // class_name format: class_name="class1 class2 class3"
+        // split class_name by space
+        vector<string> classes = split(q.front()->_class_name);
+        if ((tag_name.empty() or q.front()->_tag_name == tag_name) and
+            (class_name.empty() or find(classes.begin(), classes.end(), class_name) != classes.end()) and
+            (id_name.empty() or q.front()->_id_name == id_name)) {
+            nodes.push_back(q.front());
+        }
+        q.pop();
+    }
+    return nodes;
+}
+
+std::vector<Node *> DomTree::select_2(const std::string &class_1, const std::string &class_2) const {
+    vector<Node *> nodes;
+    queue<Node *> q;
+    q.push(_root);
+    while (!q.empty()) {
+        if (q.front()->_left_child != nullptr) {
+            q.push(q.front()->_left_child);
+        }
+        if (q.front()->_right_sibling != nullptr) {
+            q.push(q.front()->_right_sibling);
+        }
+        // class_name format: class_name="class1 class2 class3"
+        // split class_name by space
+        vector<string> classes = split(q.front()->_class_name);
+        bool has_class_1 = false, has_class_2 = false;
+        for (const auto &class_: classes) {
+            if (class_ == class_1) {
+                has_class_1 = true;
+            }
+            if (class_ == class_2) {
+                has_class_2 = true;
+            }
+            if (has_class_1 and has_class_2) {
+                nodes.push_back(q.front());
+                break;
+            }
+        }
+        q.pop();
+    }
+    return nodes;
+}
+
+std::vector<Node *> DomTree::select_3(const std::string &class_1, const std::string &class_2) const {
+    vector<Node *> nodes;
+    queue<Node *> q1, q2;
+    q1.push(_root);
+    while (!q1.empty()) {
+        if (q1.front()->_left_child != nullptr) {
+            q1.push(q1.front()->_left_child);
+        }
+        if (q1.front()->_right_sibling != nullptr) {
+            q1.push(q1.front()->_right_sibling);
+        }
+        // class_name format: class_name="class1 class2 class3"
+        // split class_name by space
+        vector<string> classes = split(q1.front()->_class_name);
+        for (const auto &class_: classes) {
+            if (class_ == class_1) {
+                if (q1.front()->_left_child != nullptr) {
+                    q2.push(q1.front()->_left_child);
+                }
+                break;
+            }
+        }
+        q1.pop();
+    }
+    while (!q2.empty()) {
+        if (q2.front()->_right_sibling != nullptr) {
+            q2.push(q2.front()->_right_sibling);
+        }
+        // class_name format: class_name="class1 class2 class3"
+        // split class_name by space
+        vector<string> classes = split(q2.front()->_class_name);
+        for (const auto &class_: classes) {
+            if (class_ == class_2) {
+                nodes.push_back(q2.front());
+                break;
+            }
+        }
+        q2.pop();
+    }
+    return nodes;
+}
+
+std::vector<Node *> DomTree::select_4(const std::string &tag_1, const std::string &tag_2) const {
+    vector<Node *> nodes;
+    queue<Node *> q;
+    q.push(_root);
+    while (!q.empty()) {
+        if (q.front()->_left_child != nullptr) {
+            q.push(q.front()->_left_child);
+        }
+        if (q.front()->_right_sibling != nullptr) {
+            q.push(q.front()->_right_sibling);
+        }
+        if (q.front()->_tag_name == tag_1 or q.front()->_tag_name == tag_2) {
+            nodes.push_back(q.front());
+        }
+        q.pop();
+    }
+    return nodes;
+}
+
+std::vector<Node *> DomTree::select_5(const std::string &tag_1, const std::string &tag_2) const {
+    vector<Node *> nodes;
+    queue<Node *> q1, q2;
+    q1.push(_root);
+    while (!q1.empty()) {
+        if (q1.front()->_left_child != nullptr) {
+            q1.push(q1.front()->_left_child);
+        }
+        if (q1.front()->_right_sibling != nullptr) {
+            q1.push(q1.front()->_right_sibling);
+        }
+        if (q1.front()->_tag_name == tag_1) {
+            if (q1.front()->_left_child != nullptr) {
+                q2.push(q1.front()->_left_child);
+            }
+        }
+        q1.pop();
+    }
+    while (!q2.empty()) {
+        if (q2.front()->_left_child != nullptr) {
+            q2.push(q2.front()->_left_child);
+        }
+        if (q2.front()->_right_sibling != nullptr) {
+            q2.push(q2.front()->_right_sibling);
+        }
+        if (q2.front()->_tag_name == tag_2) {
+            nodes.push_back(q2.front());
+        }
+        q2.pop();
+    }
+    return nodes;
+}
+
+std::vector<Node *> DomTree::select_6(const std::string &tag_1, const std::string &tag_2) const {
+    vector<Node *> nodes;
+    queue<Node *> q1, q2;
+    q1.push(_root);
+    while (!q1.empty()) {
+        if (q1.front()->_left_child != nullptr) {
+            q1.push(q1.front()->_left_child);
+        }
+        if (q1.front()->_right_sibling != nullptr) {
+            q1.push(q1.front()->_right_sibling);
+        }
+        if (q1.front()->_tag_name == tag_1) {
+            if (q1.front()->_left_child != nullptr) {
+                q2.push(q1.front()->_left_child);
+            }
+        }
+        q1.pop();
+    }
+    while (!q2.empty()) {
+        if (q2.front()->_right_sibling != nullptr) {
+            q2.push(q2.front()->_right_sibling);
+        }
+        if (q2.front()->_tag_name == tag_2) {
+            nodes.push_back(q2.front());
+        }
+        q2.pop();
+    }
+    return nodes;
+}
+
+std::vector<Node *> DomTree::select_7(const std::string &tag_1, const std::string &tag_2) const {
+    vector<Node *> nodes;
+    queue<Node *> q;
+    q.push(_root);
+    while (!q.empty()) {
+        if (q.front()->_left_child != nullptr) {
+            q.push(q.front()->_left_child);
+        }
+        if (q.front()->_right_sibling != nullptr) {
+            q.push(q.front()->_right_sibling);
+        }
+        if (q.front()->_tag_name == tag_1 and
+            q.front()->_right_sibling != nullptr and
+            q.front()->_right_sibling->_tag_name == tag_2) {
+            nodes.push_back(q.front()->_right_sibling);
+        }
+        q.pop();
+    }
+    return nodes;
+}
+
+std::vector<Node *> DomTree::select_8(const std::string &tag_1, const std::string &tag_2) const {
+    vector<Node *> nodes;
+    queue<Node *> q;
+    q.push(_root);
+    while (!q.empty()) {
+        Node *p1 = q.front(), *p2;
+        bool flag = false;
+        while (p1 != nullptr) {
+            if (p1->_left_child != nullptr) {
+                q.push(p1->_left_child);
+            }
+            if (!flag and p1->_tag_name == tag_1) {
+                flag = true;
+                p2 = p1->_right_sibling;
+                while (p2 != nullptr) {
+                    if (p2->_tag_name == tag_2) {
+                        nodes.push_back(p2);
+                    }
+                    p2 = p2->_right_sibling;
+                }
+            }
+            p1 = p1->_right_sibling;
+        }
+        q.pop();
+    }
+    return nodes;
 }

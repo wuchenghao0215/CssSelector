@@ -7,6 +7,8 @@
 
 
 #include <string>
+#include <vector>
+#include <map>
 
 class Node {
 public:
@@ -16,13 +18,24 @@ public:
 
     Node(std::string tag_name, std::string class_name, std::string id_name, std::string open_tag);
 
-    Node(std::string tag_name, std::string class_name, std::string id_name, std::string open_tag, std::string close_tag,
-         std::string text);
+    Node(std::string tag_name, std::string class_name, std::string id_name,
+         std::string open_tag, std::string close_tag, std::string text);
+
+    void print_outer_html(int indent) const;
+
+    void print_text() const;
+
+    void print_open_tag() const;
+
+    bool is_text() const;
+
+    void print_href() const;
 
 private:
     std::string _tag_name;
     std::string _class_name;
     std::string _id_name;
+    std::map<std::string, std::string> _attributes;
     std::string _open_tag;
     std::string _close_tag;
     std::string _text;
