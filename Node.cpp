@@ -97,9 +97,19 @@ bool Node::is_text() const {
 void Node::print_href() const {
     for (const auto &attr: _attributes) {
         if (attr.first == "href") {
-            cout << attr.second;
+            cout << attr.second << endl;
             return;
         }
     }
-    cout << "href not found";
+    cout << "href not found" << endl;
+}
+
+void Node::print_attribute(const std::string &attr) const {
+    for (const auto &attribute: _attributes) {
+        if (attribute.first == attr) {
+            cout << attribute.second << endl;
+            return;
+        }
+    }
+    cout << attr << " not found" << endl;
 }

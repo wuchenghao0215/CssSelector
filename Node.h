@@ -31,6 +31,8 @@ public:
 
     void print_href() const;
 
+    void print_attribute(const std::string &attr) const;
+
 private:
     std::string _tag_name;
     std::string _class_name;

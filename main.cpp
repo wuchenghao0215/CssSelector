@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <sstream>
 #include <regex>
 
 #include "DomTree.h"
@@ -40,7 +41,7 @@ int main() {
     // css selector
     {
         // input format
-        // "css.selector("xx")[xx].xx()"
+        // "css.selector("xx")[xx].xx("xx")"
         regex regex_input(R"(css\.selector\(\"(.*)\"\)(\[(\d+)\])?(\.(\w+)\(\))?)");
 
         // selector format
@@ -64,9 +65,23 @@ int main() {
             regex_selector.emplace_back(R"(([\w-]+)(\s?\+\s?[\w-]+))");
             // 8. tag1 ~ tag2
             regex_selector.emplace_back(R"(([\w-]+)(\s?~\s?[\w-]+))");
+            // extra features
+            // 9. [attribute]
+            regex_selector.emplace_back(R"(\[([\w-]+)\])");
+            // 10. [attribute=value]
+            regex_selector.emplace_back(R"(\[([\w-]+)=([#/\w-]+)\])");
+            // 11. [attribute~=value]
+            regex_selector.emplace_back(R"(\[([\w-]+)~=([,\w-]+)\])");
+            // 12. [attribute^=value]
+            regex_selector.emplace_back(R"(\[([\w-]+)\^=([.:\w]+)\])");
+            // 13. [attribute$=value]
+            regex_selector.emplace_back(R"(\[([\w-]+)\$=([.:\w]+)\])");
         }
 
+        regex regex_result(R"(result(\[(\d+)\])?(\.(\w+)\(\))?)");
+
         string input;
+        vector<Node *> results;
         while (true) {
             cout << "> ";
             getline(cin, input);
@@ -82,7 +97,6 @@ int main() {
                 string operation = match_input[5];
 
                 smatch match_selector;
-                vector<Node *> results;
 
                 int i_selector;
                 bool is_valid = false;
@@ -196,6 +210,40 @@ int main() {
                         results = tree.select_8(tag_1, tag_2);
                         break;
                     }
+                    case 9: {
+                        // 9. [attribute]
+                        string attribute = match_selector[1];
+                        results = tree.select_9(attribute);
+                        break;
+                    }
+                    case 10: {
+                        // 10. [attribute=value]
+                        string attribute = match_selector[1];
+                        string value = match_selector[2];
+                        results = tree.select_10(attribute, value);
+                        break;
+                    }
+                    case 11: {
+                        // 11. [attribute~=value]
+                        string attribute = match_selector[1];
+                        string value = match_selector[2];
+                        results = tree.select_11(attribute, value);
+                        break;
+                    }
+                    case 12: {
+                        // 12. [attribute^=value]
+                        string attribute = match_selector[1];
+                        string value = match_selector[2];
+                        results = tree.select_12(attribute, value);
+                        break;
+                    }
+                    case 13: {
+                        // 13. [attribute$=value]
+                        string attribute = match_selector[1];
+                        string value = match_selector[2];
+                        results = tree.select_13(attribute, value);
+                        break;
+                    }
                     default:
                         break;
                 }
@@ -211,7 +259,7 @@ int main() {
                                     if (is_first) {
                                         is_first = false;
                                     } else {
-                                        cout << ", " << endl;
+                                        cout << "," << endl;
                                     }
                                     result->print_open_tag();
                                 }
@@ -227,6 +275,13 @@ int main() {
                                 result->print_outer_html(0);
                                 cout << endl;
                             }
+                        } else if (operation == "href") {
+                            for (const auto &result: results) {
+                                result->print_href();
+                                cout << endl;
+                            }
+                        } else if (operation == "count")  {
+                            cout << results.size() << endl;
                         } else {
                             cout << "invalid operation" << endl;
                         }
@@ -253,6 +308,67 @@ int main() {
                 } else {
                     cout << "invalid selector" << endl;
                     continue;
+                }
+            } else if (regex_match(input, match_input, regex_result)) {
+                if (results.empty()) {
+                    cout << "no result" << endl;
+                    continue;
+                }
+                string index_str = match_input[2];
+                string operation = match_input[4];
+                if (index_str.empty()) {
+                    // operate on all results
+                    if (operation.empty()) {
+                        cout << "[";
+                        bool is_first = true;
+                        for (auto & result : results) {
+                            if (!result->is_text()) {
+                                if (is_first) {
+                                    is_first = false;
+                                } else {
+                                    cout << "," << endl;
+                                }
+                                result->print_open_tag();
+                            }
+                        }
+                        cout << "]" << endl;
+                    } else if (operation == "text") {
+                        for (const auto &result: results) {
+                            result->print_text();
+                            cout << endl;
+                        }
+                    } else if (operation == "html") {
+                        for (const auto &result: results) {
+                            result->print_outer_html(0);
+                            cout << endl;
+                        }
+                    } else if (operation == "href") {
+                        for (const auto &result: results) {
+                            result->print_href();
+                            cout << endl;
+                        }
+                    } else {
+                        cout << "invalid operation" << endl;
+                    }
+                } else {
+                    // operate on results[index]
+                    int index = stoi(index_str);
+                    if (index < results.size()) {
+                        Node *result = results[index];
+                        if (operation.empty()) {
+                            result->print_open_tag();
+                        } else if (operation == "text") {
+                            result->print_text();
+                        } else if (operation == "html") {
+                            result->print_outer_html(0);
+                        } else if (operation == "href") {
+                            result->print_href();
+                        } else {
+                            cout << "invalid operation" << endl;
+                        }
+                    } else {
+                        cout << "index out of range" << endl;
+                    }
                 }
             } else {
                 cout << "invalid input" << endl;

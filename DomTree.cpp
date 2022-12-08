@@ -352,28 +352,30 @@ std::vector<Node *> DomTree::select_5(const std::string &tag_1, const std::strin
     queue<Node *> q1, q2;
     q1.push(_root);
     while (!q1.empty()) {
+        if (q1.front()->_tag_name == tag_1) {
+            if (q1.front()->_left_child != nullptr) {
+                q2.push(q1.front()->_left_child);
+            }
+            q1.pop();
+            continue;
+        }
         if (q1.front()->_left_child != nullptr) {
             q1.push(q1.front()->_left_child);
         }
         if (q1.front()->_right_sibling != nullptr) {
             q1.push(q1.front()->_right_sibling);
         }
-        if (q1.front()->_tag_name == tag_1) {
-            if (q1.front()->_left_child != nullptr) {
-                q2.push(q1.front()->_left_child);
-            }
-        }
         q1.pop();
     }
     while (!q2.empty()) {
+        if (q2.front()->_tag_name == tag_2) {
+            nodes.push_back(q2.front());
+        }
         if (q2.front()->_left_child != nullptr) {
             q2.push(q2.front()->_left_child);
         }
         if (q2.front()->_right_sibling != nullptr) {
             q2.push(q2.front()->_right_sibling);
-        }
-        if (q2.front()->_tag_name == tag_2) {
-            nodes.push_back(q2.front());
         }
         q2.pop();
     }
@@ -453,6 +455,105 @@ std::vector<Node *> DomTree::select_8(const std::string &tag_1, const std::strin
                 }
             }
             p1 = p1->_right_sibling;
+        }
+        q.pop();
+    }
+    return nodes;
+}
+
+std::vector<Node *> DomTree::select_9(const std::string &attribute) const {
+    vector<Node *> nodes;
+    queue<Node *> q;
+    q.push(_root);
+    while (!q.empty()) {
+        if (q.front()->_left_child != nullptr) {
+            q.push(q.front()->_left_child);
+        }
+        if (q.front()->_right_sibling != nullptr) {
+            q.push(q.front()->_right_sibling);
+        }
+        if (q.front()->_attributes.find(attribute) != q.front()->_attributes.end()) {
+            nodes.push_back(q.front());
+        }
+        q.pop();
+    }
+    return nodes;
+}
+
+std::vector<Node *> DomTree::select_10(const std::string &attribute, const std::string &value) const {
+    vector<Node *> nodes;
+    queue<Node *> q;
+    q.push(_root);
+    while (!q.empty()) {
+        if (q.front()->_left_child != nullptr) {
+            q.push(q.front()->_left_child);
+        }
+        if (q.front()->_right_sibling != nullptr) {
+            q.push(q.front()->_right_sibling);
+        }
+        if (q.front()->_attributes.find(attribute) != q.front()->_attributes.end() and
+            q.front()->_attributes[attribute] == value) {
+            nodes.push_back(q.front());
+        }
+        q.pop();
+    }
+    return nodes;
+}
+
+std::vector<Node *> DomTree::select_11(const std::string &attribute, const std::string &value) const {
+    vector<Node *> nodes;
+    queue<Node *> q;
+    q.push(_root);
+    while (!q.empty()) {
+        if (q.front()->_left_child != nullptr) {
+            q.push(q.front()->_left_child);
+        }
+        if (q.front()->_right_sibling != nullptr) {
+            q.push(q.front()->_right_sibling);
+        }
+        if (q.front()->_attributes.find(attribute) != q.front()->_attributes.end() and
+            q.front()->_attributes[attribute].find(value) != string::npos) {
+            nodes.push_back(q.front());
+        }
+        q.pop();
+    }
+    return nodes;
+}
+
+std::vector<Node *> DomTree::select_12(const std::string &attribute, const std::string &value) const {
+    vector<Node *> nodes;
+    queue<Node *> q;
+    q.push(_root);
+    while (!q.empty()) {
+        if (q.front()->_left_child != nullptr) {
+            q.push(q.front()->_left_child);
+        }
+        if (q.front()->_right_sibling != nullptr) {
+            q.push(q.front()->_right_sibling);
+        }
+        if (q.front()->_attributes.find(attribute) != q.front()->_attributes.end() and
+            q.front()->_attributes[attribute].find(value) == 0) {
+            nodes.push_back(q.front());
+        }
+        q.pop();
+    }
+    return nodes;
+}
+
+std::vector<Node *> DomTree::select_13(const std::string &attribute, const std::string &value) const {
+    vector<Node *> nodes;
+    queue<Node *> q;
+    q.push(_root);
+    while (!q.empty()) {
+        if (q.front()->_left_child != nullptr) {
+            q.push(q.front()->_left_child);
+        }
+        if (q.front()->_right_sibling != nullptr) {
+            q.push(q.front()->_right_sibling);
+        }
+        if (q.front()->_attributes.find(attribute) != q.front()->_attributes.end() and
+            q.front()->_attributes[attribute].find(value) == q.front()->_attributes[attribute].size() - value.size()) {
+            nodes.push_back(q.front());
         }
         q.pop();
     }

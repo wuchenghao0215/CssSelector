@@ -37,6 +37,16 @@ public:
 
     std::vector<Node *> select_8(const std::string &tag_1, const std::string &tag_2) const;
 
+    std::vector<Node *> select_9(const std::string &attribute) const;
+
+    std::vector<Node *> select_10(const std::string &attribute, const std::string &value) const;
+
+    std::vector<Node *> select_11(const std::string &attribute, const std::string &value) const;
+
+    std::vector<Node *> select_12(const std::string &attribute, const std::string &value) const;
+
+    std::vector<Node *> select_13(const std::string &attribute, const std::string &value) const;
+
 private:
     Node *_root;
 };
